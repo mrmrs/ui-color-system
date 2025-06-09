@@ -8,11 +8,15 @@ export type ColorCombination = {
   contrast: number;
   bgHue?: string;
   fgHue?: string;
+  bgIndex?: number; // Add index for locating in palette
 };
 
 export type BackgroundVariant = 'solid' | 'gradient';
 export type GradientType = 'linear' | 'radial';
 export type GradientDirection = 'to right' | 'to bottom' | 'to bottom right' | 'to bottom left';
+export type StepDirection = 'lighter' | 'darker';
+export type GradientHueMode = 'same-hue' | 'adjacent-hue' | 'complementary-hue' | 'random-hue';
+export type AdjacentDirection = 'next' | 'prev' | 'both';
 
 /**
  * Calculate contrast between two colors using the specified algorithm
@@ -51,7 +55,7 @@ export function findAccessibleCombinations(
   // Loop through all color scales
   Object.entries(colorPalette).forEach(([bgHueName, bgHueScale]) => {
     // For each color in this scale
-    bgHueScale.forEach((backgroundColor) => {
+    bgHueScale.forEach((backgroundColor, bgIndex) => {
       // Check against all other colors
       Object.entries(colorPalette).forEach(([fgHueName, fgHueScale]) => {
         fgHueScale.forEach((foregroundColor) => {
@@ -65,7 +69,8 @@ export function findAccessibleCombinations(
               foreground: foregroundColor,
               contrast,
               bgHue: bgHueName,
-              fgHue: fgHueName
+              fgHue: fgHueName,
+              bgIndex
             });
           }
         });
@@ -125,82 +130,203 @@ export function getAPCAComplianceDescription(contrastValue: number): string {
 }
 
 /**
- * Generate a border color that's darker/lighter than the background but in the same hue
+ * Get a different color from the same hue family to use as a border
+ * This uses colors from the palette instead of manipulating colors
  */
-export function generateBorderColor(
+export function getBorderColorFromPalette(
   backgroundColor: string,
-  level: 'subtle' | 'strong' = 'subtle'
+  borderLevel: 'subtle' | 'strong',
+  colorPalette: Record<string, string[]>,
+  bgHue?: string,
+  bgIndex?: number
 ): string {
-  try {
-    const color = new Color(backgroundColor);
-    
-    // Calculate a darker version of the same color for the border
-    // For subtle borders, darken less; for strong borders, darken more
-    const amount = level === 'subtle' ? 0.1 : 0.2;
-    
-    let borderColor;
-    
-    // If the background is already very dark, lighten instead
-    if (color.luminance < 0.2) {
-      borderColor = color.clone().lighten(amount);
-    } else {
-      borderColor = color.clone().darken(amount);
-    }
-    
-    return borderColor.toString();
-  } catch (error) {
-    // If there's an error, return a fallback
+  // Default to original color if missing info
+  if (!bgHue || bgIndex === undefined || !colorPalette[bgHue]) {
     return backgroundColor;
   }
+  
+  const hueColors = colorPalette[bgHue];
+  const step = borderLevel === 'subtle' ? 1 : 2;
+  
+  // Get a darker color for border (or lighter if we're at the dark end)
+  const isAlreadyDark = bgIndex <= 3;
+  const targetIndex = isAlreadyDark 
+    ? Math.min(bgIndex + step, hueColors.length - 1) // Go lighter
+    : Math.max(bgIndex - step, 0); // Go darker
+  
+  return hueColors[targetIndex] || backgroundColor;
 }
 
 /**
- * Generate a gradient background using colors from the same or nearby hue
+ * Get an adjacent hue family from the palette
  */
-export function generateGradientBackground(
-  baseColor: string,
-  type: GradientType = 'linear',
-  direction: GradientDirection = 'to right',
-  hueShift: number = 10
-): string {
-  try {
-    const color = new Color(baseColor);
-    
-    // Create a variation of the color by shifting the hue slightly
-    const endColor = color.clone();
-    
-    // Shift the hue, maintaining the same lightness
-    endColor.hsl.h = (endColor.hsl.h + hueShift) % 360;
-    
-    // Format gradient based on type
-    if (type === 'linear') {
-      return `linear-gradient(${direction}, ${color.toString()}, ${endColor.toString()})`;
-    } else {
-      return `radial-gradient(circle, ${color.toString()}, ${endColor.toString()})`;
-    }
-  } catch (error) {
-    // If there's an error, return the original color as a solid background
-    return baseColor;
+export function getAdjacentHue(
+  currentHue: string,
+  direction: 'next' | 'prev' | 'both',
+  colorPalette: Record<string, string[]>
+): string | string[] {
+  const hueNames = Object.keys(colorPalette);
+  const currentIndex = hueNames.indexOf(currentHue);
+  
+  if (currentIndex === -1) return currentHue;
+  
+  if (direction === 'both') {
+    const nextHue = hueNames[(currentIndex + 1) % hueNames.length];
+    const prevHue = hueNames[(currentIndex - 1 + hueNames.length) % hueNames.length];
+    return [nextHue, prevHue];
+  } else if (direction === 'next') {
+    return hueNames[(currentIndex + 1) % hueNames.length];
+  } else {
+    return hueNames[(currentIndex - 1 + hueNames.length) % hueNames.length];
   }
 }
 
 /**
- * Get a complementary color by shifting the hue by a specific amount
- * This is useful for generating color pairs that work well together
+ * Get a random hue from the palette (different from current)
  */
-export function getShiftedHueColor(
-  baseColor: string,
-  hueShift: number = 30
+export function getRandomHue(
+  currentHue: string,
+  colorPalette: Record<string, string[]>
 ): string {
-  try {
-    const color = new Color(baseColor);
-    const shiftedColor = color.clone();
+  const hueNames = Object.keys(colorPalette);
+  if (hueNames.length <= 1) return currentHue;
+  
+  // Filter out the current hue
+  const availableHues = hueNames.filter(hue => hue !== currentHue);
+  
+  // Return a random hue from the available options
+  const randomIndex = Math.floor(Math.random() * availableHues.length);
+  return availableHues[randomIndex];
+}
+
+/**
+ * Get a complementary hue (approximately opposite on the color wheel)
+ */
+export function getComplementaryHue(
+  currentHue: string,
+  colorPalette: Record<string, string[]>
+): string {
+  const hueNames = Object.keys(colorPalette);
+  const currentIndex = hueNames.indexOf(currentHue);
+  
+  if (currentIndex === -1) return currentHue;
+  
+  // Get a hue that's approximately opposite in the list
+  const halfLength = Math.floor(hueNames.length / 2);
+  return hueNames[(currentIndex + halfLength) % hueNames.length];
+}
+
+/**
+ * Get another color for gradient end based on hue mode and steps
+ */
+export function getGradientEndColor(
+  backgroundColor: string,
+  hueStep: number,
+  hueMode: GradientHueMode,
+  colorPalette: Record<string, string[]>,
+  bgHue?: string,
+  bgIndex?: number
+): string {
+  // Default to original color if missing info
+  if (!bgHue || bgIndex === undefined || !colorPalette[bgHue]) {
+    return backgroundColor;
+  }
+  
+  // For same hue, just move up or down the scale
+  if (hueMode === 'same-hue') {
+    const hueColors = colorPalette[bgHue];
+    // For dark colors go lighter, for light colors go darker for better contrast
+    const isAlreadyDark = bgIndex <= (hueColors.length / 3);
+    const targetIndex = isAlreadyDark 
+      ? Math.min(bgIndex + hueStep, hueColors.length - 1)  // Go lighter
+      : Math.max(bgIndex - hueStep, 0);  // Go darker
     
-    // Shift the hue by the specified amount
-    shiftedColor.hsl.h = (shiftedColor.hsl.h + hueShift) % 360;
+    return hueColors[targetIndex] || backgroundColor;
+  }
+  
+  // For adjacent hue, get the neighboring hue family (either next, prev, or both)
+  else if (hueMode === 'adjacent-hue') {
+    // For "both" direction, randomly choose between next and prev for variation
+    const direction = Math.random() > 0.5 ? 'next' : 'prev';
+    const adjacentHue = getAdjacentHue(bgHue, direction, colorPalette) as string;
     
-    return shiftedColor.toString();
-  } catch (error) {
-    return baseColor;
+    // Get a color at similar depth from the adjacent hue
+    if (colorPalette[adjacentHue]) {
+      const adjacentColors = colorPalette[adjacentHue];
+      // Adjust index if the two scales have different lengths
+      const normalizedIndex = Math.floor(
+        (bgIndex / colorPalette[bgHue].length) * adjacentColors.length
+      );
+      return adjacentColors[normalizedIndex] || backgroundColor;
+    }
+  }
+  
+  // For complementary hue, get an approximately opposite hue
+  else if (hueMode === 'complementary-hue') {
+    const complementaryHue = getComplementaryHue(bgHue, colorPalette);
+    
+    // Get a color at similar depth from the complementary hue
+    if (colorPalette[complementaryHue]) {
+      const complementaryColors = colorPalette[complementaryHue];
+      // Adjust index if the two scales have different lengths
+      const normalizedIndex = Math.floor(
+        (bgIndex / colorPalette[bgHue].length) * complementaryColors.length
+      );
+      return complementaryColors[normalizedIndex] || backgroundColor;
+    }
+  }
+  
+  // For random hue, get a random hue from the palette
+  else if (hueMode === 'random-hue') {
+    const randomHue = getRandomHue(bgHue, colorPalette);
+    
+    // Get a color at similar depth from the random hue
+    if (colorPalette[randomHue]) {
+      const randomColors = colorPalette[randomHue];
+      // Adjust index if the two scales have different lengths
+      const normalizedIndex = Math.floor(
+        (bgIndex / colorPalette[bgHue].length) * randomColors.length
+      );
+      return randomColors[normalizedIndex] || backgroundColor;
+    }
+  }
+  
+  // Fallback to original color
+  return backgroundColor;
+}
+
+/**
+ * Generate a gradient background using colors from the palette
+ */
+export function generatePaletteGradient(
+  backgroundColor: string,
+  bgHue: string | undefined,
+  bgIndex: number | undefined,
+  colorPalette: Record<string, string[]>,
+  type: GradientType = 'linear',
+  direction: GradientDirection = 'to right',
+  hueStep: number = 2,
+  hueMode: GradientHueMode = 'same-hue'
+): string {
+  // If missing info, return solid background
+  if (!bgHue || bgIndex === undefined || !colorPalette[bgHue]) {
+    return backgroundColor;
+  }
+  
+  // Get another color from the palette based on hue mode
+  const endColor = getGradientEndColor(
+    backgroundColor,
+    hueStep,
+    hueMode,
+    colorPalette,
+    bgHue,
+    bgIndex
+  );
+  
+  // Format gradient based on type
+  if (type === 'linear') {
+    return `linear-gradient(${direction}, ${backgroundColor}, ${endColor})`;
+  } else {
+    return `radial-gradient(circle, ${backgroundColor}, ${endColor})`;
   }
 } 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { getWCAGComplianceLevel, getAPCAComplianceDescription, generateBorderColor, generateGradientBackground } from '../utils/colorUtils';
-import type { ContrastAlgorithm, BackgroundVariant, GradientType, GradientDirection } from '../utils/colorUtils';
+import { getWCAGComplianceLevel, getAPCAComplianceDescription, getBorderColorFromPalette, generatePaletteGradient } from '../utils/colorUtils';
+import type { ContrastAlgorithm, BackgroundVariant, GradientType, GradientDirection, GradientHueMode } from '../utils/colorUtils';
 
 type GradientBadgeProps = {
   backgroundColor: string;
@@ -10,13 +10,16 @@ type GradientBadgeProps = {
   label?: string;
   bgHue?: string;
   fgHue?: string;
+  bgIndex?: number;
   compact?: boolean;
   showBorder?: boolean;
   borderLevel?: 'subtle' | 'strong';
   backgroundVariant?: BackgroundVariant;
   gradientType?: GradientType;
   gradientDirection?: GradientDirection;
-  hueShift?: number;
+  hueStep?: number;
+  hueMode?: GradientHueMode;
+  colorPalette?: Record<string, string[]>;
 };
 
 const GradientBadge: React.FC<GradientBadgeProps> = ({
@@ -24,16 +27,19 @@ const GradientBadge: React.FC<GradientBadgeProps> = ({
   foregroundColor,
   contrast,
   algorithm,
-  label = 'For Sale',
+  label = 'Click',
   bgHue,
   fgHue,
+  bgIndex,
   compact = false,
   showBorder = false,
   borderLevel = 'subtle',
   backgroundVariant = 'solid',
   gradientType = 'linear',
   gradientDirection = 'to right',
-  hueShift = 10
+  hueStep = 2,
+  hueMode = 'same-hue',
+  colorPalette = {}
 }) => {
   // Get compliance level based on algorithm
   const complianceInfo = algorithm === 'WCAG21'
@@ -42,23 +48,33 @@ const GradientBadge: React.FC<GradientBadgeProps> = ({
 
   // Generate background based on variant
   const getBackground = () => {
-    if (backgroundVariant === 'solid') {
+    if (backgroundVariant === 'solid' || Object.keys(colorPalette).length === 0) {
       return backgroundColor;
     } else {
-      return generateGradientBackground(
+      return generatePaletteGradient(
         backgroundColor,
+        bgHue,
+        bgIndex,
+        colorPalette,
         gradientType,
         gradientDirection,
-        hueShift
+        hueStep,
+        hueMode
       );
     }
   };
 
   // Get border color if borders are enabled
   const getBorder = () => {
-    if (showBorder) {
+    if (showBorder && Object.keys(colorPalette).length > 0) {
       return {
-        borderColor: generateBorderColor(backgroundColor, borderLevel),
+        borderColor: getBorderColorFromPalette(
+          backgroundColor,
+          borderLevel,
+          colorPalette,
+          bgHue,
+          bgIndex
+        ),
         borderWidth: '1px',
         borderStyle: 'solid' as const
       };
@@ -81,10 +97,14 @@ const GradientBadge: React.FC<GradientBadgeProps> = ({
           background,
           color: foregroundColor,
           maxWidth: '16ch',
+	  display: 'inline-flex',
+	  alignItems: 'center',
+	  gap: '4px',
           ...borderStyles
         }}
       >
         {label}
+<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </div>
     );
   }

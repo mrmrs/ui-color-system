@@ -36,9 +36,9 @@ const Avatar: React.FC<AvatarProps> = ({
   const getSizeDimensions = () => {
     switch(size) {
       case 'sm': return { width: '32px', height: '32px', fontSize: '0.75rem' };
-      case 'lg': return { width: '64px', height: '64px', fontSize: '1.5rem' };
+      case 'lg': return { width: '64px', height: '64px', fontSize: '1.25rem' };
       case 'md':
-      default: return { width: '48px', height: '48px', fontSize: '1.125rem' };
+      default: return { width: '48px', height: '48px', fontSize: '1rem' };
     }
   };
   

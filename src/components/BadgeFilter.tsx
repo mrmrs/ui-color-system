@@ -16,9 +16,9 @@ const BadgeFilter: React.FC<BadgeFilterProps> = ({
   onFgHueChange
 }) => {
   return (
-    <div className="badge-filter">
-      <div className="filter-section">
-        <label>Background Hue:</label>
+    <div className="badge-filter" style={{ justifyContent: 'space-between'}}>
+      <div className="filter-section" style={{ display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <label style={{ fontSize: '12px', margin: 0 }}>Background </label>
         <div className="hue-options">
           <button 
             className={selectedBgHue === null ? 'active' : ''} 
@@ -38,8 +38,8 @@ const BadgeFilter: React.FC<BadgeFilterProps> = ({
         </div>
       </div>
 
-      <div className="filter-section">
-        <label>Text Hue:</label>
+      <div className="filter-section" style={{ display: 'flex', alignItems: 'center', gap: '8px'}}>
+        <label style={{ fontSize: '12px' }}>Color</label>
         <div className="hue-options">
           <button 
             className={selectedFgHue === null ? 'active' : ''} 

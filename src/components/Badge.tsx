@@ -18,7 +18,7 @@ const Badge = ({
   foregroundColor, 
   contrast,
   algorithm,
-  label = 'For Sale',
+  label = 'Sale',
   bgHue,
   fgHue,
   compact = false
@@ -35,11 +35,15 @@ const Badge = ({
         style={{ 
           backgroundColor,
           color: foregroundColor,
-          maxWidth: '16ch',
+          maxWidth: '32ch',
           borderWidth: '1px',
+	  display: 'inline-flex',
+	  alignItems: 'center',
+	  gap: '4px',
         }}
       >
         {label}
+		<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
       </div>
     );
   }
@@ -53,6 +57,7 @@ const Badge = ({
           color: foregroundColor,
         }}
       >
+      	
         {label}
       </div>
       <div className="badge-info">

@@ -1,6 +1,6 @@
 import React from 'react';
-import { generateBorderColor, generateGradientBackground } from '../utils/colorUtils';
-import type { BackgroundVariant, GradientType, GradientDirection } from '../utils/colorUtils';
+import { getBorderColorFromPalette, generatePaletteGradient } from '../utils/colorUtils';
+import type { BackgroundVariant, GradientType, GradientDirection, GradientHueMode } from '../utils/colorUtils';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
 
@@ -9,12 +9,16 @@ type GradientAvatarProps = {
   foregroundColor: string;
   size?: AvatarSize;
   initials?: string;
+  bgHue?: string;
+  bgIndex?: number;
   showBorder?: boolean;
   borderLevel?: 'subtle' | 'strong';
   backgroundVariant?: BackgroundVariant;
   gradientType?: GradientType;
   gradientDirection?: GradientDirection;
-  hueShift?: number;
+  hueStep?: number;
+  hueMode?: GradientHueMode;
+  colorPalette?: Record<string, string[]>;
 };
 
 const GradientAvatar: React.FC<GradientAvatarProps> = ({
@@ -22,12 +26,16 @@ const GradientAvatar: React.FC<GradientAvatarProps> = ({
   foregroundColor,
   size = 'md',
   initials,
+  bgHue,
+  bgIndex,
   showBorder = false,
   borderLevel = 'subtle',
   backgroundVariant = 'solid',
   gradientType = 'linear',
   gradientDirection = 'to right',
-  hueShift = 10
+  hueStep = 2,
+  hueMode = 'same-hue',
+  colorPalette = {}
 }) => {
   // Generate random initials if none provided
   const displayInitials = initials || generateRandomInitials();
@@ -41,23 +49,33 @@ const GradientAvatar: React.FC<GradientAvatarProps> = ({
   
   // Generate background based on variant
   const getBackground = () => {
-    if (backgroundVariant === 'solid') {
+    if (backgroundVariant === 'solid' || Object.keys(colorPalette).length === 0) {
       return backgroundColor;
     } else {
-      return generateGradientBackground(
+      return generatePaletteGradient(
         backgroundColor,
+        bgHue,
+        bgIndex,
+        colorPalette,
         gradientType,
         gradientDirection,
-        hueShift
+        hueStep,
+        hueMode
       );
     }
   };
 
   // Get border color if borders are enabled
   const getBorder = () => {
-    if (showBorder) {
+    if (showBorder && Object.keys(colorPalette).length > 0) {
       return {
-        borderColor: generateBorderColor(backgroundColor, borderLevel),
+        borderColor: getBorderColorFromPalette(
+          backgroundColor,
+          borderLevel,
+          colorPalette,
+          bgHue,
+          bgIndex
+        ),
         borderWidth: '1px',
         borderStyle: 'solid' as const
       };

@@ -20,7 +20,7 @@ import type { BackgroundMode } from './components/BackgroundContextSwitcher'
 import BackgroundVariationControls from './components/BackgroundVariationControls'
 import GradientBadge from './components/GradientBadge'
 import GradientAvatar from './components/GradientAvatar'
-import type { BackgroundVariant, GradientType, GradientDirection } from './utils/colorUtils'
+import type { BackgroundVariant, GradientType, GradientDirection, GradientHueMode } from './utils/colorUtils'
 
 const colors3 = {
     gray: [
@@ -684,7 +684,9 @@ function App() {
   const [backgroundVariant, setBackgroundVariant] = useState<BackgroundVariant>('solid');
   const [gradientType, setGradientType] = useState<GradientType>('linear');
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>('to right');
-  const [hueShift, setHueShift] = useState<number>(15);
+  const [hueStep, setHueStep] = useState<number>(2);
+  const [hueMode, setHueMode] = useState<GradientHueMode>('same-hue');
+  const [gradientKey, setGradientKey] = useState<number>(0);
 
   // Get hue names for the current palette
   const hueNames = useMemo(() => getHueNames(activePalette), [activePalette]);
@@ -803,10 +805,29 @@ function App() {
 
   // Handle palette change
   const handlePaletteChange = (palette: ColorPalette) => {
+    const previousPalette = activePalette;
+    const newPaletteHues = Object.keys(colorPalettes[palette].colors);
+    
+    // Set the new palette
     setActivePalette(palette);
-    // Reset hue filters when changing palettes
-    setSelectedBgHue(null);
-    setSelectedFgHue(null);
+    
+    // Check if the selected hues exist in the new palette
+    const newBgHue = selectedBgHue && newPaletteHues.includes(selectedBgHue) 
+      ? selectedBgHue 
+      : null;
+      
+    const newFgHue = selectedFgHue && newPaletteHues.includes(selectedFgHue) 
+      ? selectedFgHue 
+      : null;
+    
+    // Only update the hue filters if they changed
+    if (newBgHue !== selectedBgHue) {
+      setSelectedBgHue(newBgHue);
+    }
+    
+    if (newFgHue !== selectedFgHue) {
+      setSelectedFgHue(newFgHue);
+    }
   };
 
   // Handle background mode change
@@ -839,10 +860,26 @@ function App() {
     setGradientDirection(direction);
   };
 
-  // Handle hue shift change
-  const handleHueShiftChange = (shift: number) => {
-    setHueShift(shift);
+  // Handle hue step change
+  const handleHueStepChange = (step: number) => {
+    setHueStep(step);
   };
+
+  // Add hueMode handler
+  const handleHueModeChange = (mode: GradientHueMode) => {
+    setHueMode(mode);
+  };
+
+  // Add regenerate gradient handler
+  const handleRegenerateGradient = () => {
+    // Simply increment the key to force re-render with new random values
+    setGradientKey(prev => prev + 1);
+  };
+
+  // Get current palette colors
+  const currentPaletteColors = useMemo(() => {
+    return colorPalettes[activePalette].colors;
+  }, [activePalette]);
 
   // Render UI components (badges and/or avatars) based on filter
   const renderUIComponents = (combinations: ColorCombination[]) => {
@@ -857,6 +894,7 @@ function App() {
             <div className="ui-component-item">
               {(componentType === 'all' || componentType === 'badge') && (
                 <GradientBadge 
+                  key={`badge-${index}-${gradientKey}`}
                   backgroundColor={combo.background}
                   foregroundColor={combo.foreground}
                   contrast={combo.contrast}
@@ -867,12 +905,17 @@ function App() {
                   backgroundVariant={backgroundVariant}
                   gradientType={gradientType}
                   gradientDirection={gradientDirection}
-                  hueShift={hueShift}
+                  hueStep={hueStep}
+                  hueMode={hueMode}
+                  bgHue={combo.bgHue}
+                  bgIndex={combo.bgIndex}
+                  colorPalette={currentPaletteColors}
                 />
               )}
               
               {(componentType === 'all' || componentType === 'avatar') && (
                 <GradientAvatar 
+                  key={`avatar-${index}-${gradientKey}`}
                   backgroundColor={combo.background}
                   foregroundColor={combo.foreground}
                   size="sm"
@@ -881,7 +924,11 @@ function App() {
                   backgroundVariant={backgroundVariant}
                   gradientType={gradientType}
                   gradientDirection={gradientDirection}
-                  hueShift={hueShift}
+                  hueStep={hueStep}
+                  hueMode={hueMode}
+                  bgHue={combo.bgHue}
+                  bgIndex={combo.bgIndex}
+                  colorPalette={currentPaletteColors}
                 />
               )}
             </div>
@@ -896,11 +943,12 @@ function App() {
       className={`app-container ${isDarkMode ? 'dark-mode' : ''}`}
       style={{
         backgroundColor: backgroundColors[backgroundMode],
-        color: textColors[backgroundMode]
+        color: textColors[backgroundMode],
+	position: 'relative',
       }}
     >
       {/* Site Header with Filters */}
-      <header style={{ borderBottom: '1px solid rgba(0,0,0,2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header style={{ zIndex: 999, backgroundColor: backgroundColors[backgroundMode], position: 'sticky', top: 0, left: 0, right: 0, borderBottom: '1px solid rgba(0,0,0,2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <a href='#0' style={{display: 'block', padding: '8px', marginRight: '24px' }}>
         <div style={{ display: 'flex', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.05)',alignItems: 'center', justifyContent: 'center',  borderRadius: '9999px', height: '24px', width: '24px', background: 'conic-gradient(red, orange, yellow, green, blue, indigo, magenta, red)'}}><div style={{ borderRadius: '9999px', width: '16px', height:'16px', boxShadow: 'inset 0 0 0 1px solid rgba(0,0,0,.05)', backgroundColor: backgroundColors[backgroundMode] }}/></div>
         </a>
@@ -1004,15 +1052,20 @@ function App() {
                 onGradientTypeChange={handleGradientTypeChange}
                 gradientDirection={gradientDirection}
                 onGradientDirectionChange={handleGradientDirectionChange}
-                hueShift={hueShift}
-                onHueShiftChange={handleHueShiftChange}
+                hueStep={hueStep}
+                onHueStepChange={handleHueStepChange}
+                hueMode={hueMode}
+                onHueModeChange={handleHueModeChange}
+                onRegenerateGradient={handleRegenerateGradient}
               />
             </div>
 
-            <div className="results-summary">
-              Found {filteredCombinations.length} accessible combinations using {colorPalettes[activePalette].name}
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', textAlign: 'center' }}>
+              <span>
+              {filteredCombinations.length} accessible combinations
               {selectedBgHue !== null && ` with ${selectedBgHue} backgrounds`}
-              {selectedFgHue !== null && ` and ${selectedFgHue} text`}.
+              {selectedFgHue !== null && ` and ${selectedFgHue} text`}
+              </span>
             </div>
 
             {/* Massive Grid of UI Components */}
@@ -1021,8 +1074,8 @@ function App() {
               <div className="bg-hue-sections">
                 {Object.keys(combinationsByBackgroundHue).length > 0 ? (
                   Object.entries(combinationsByBackgroundHue).map(([bgHue, combinations]) => (
-                    <div key={bgHue} className="bg-hue-section">
-                      <h3 className="bg-hue-title">{bgHue}</h3>
+                    <div key={bgHue} className="bg-hue-section" style={{ padding: '16px' }}>
+                      <h3 style={{ fontSize: '12px', marginTop: 0, marginBottom: '16px', textTransform: 'capitalize' }}>{bgHue}</h3>
                       {renderUIComponents(combinations)}
                     </div>
                   ))
@@ -1038,21 +1091,26 @@ function App() {
                     <h3>Selected Combination</h3>
                     <div className="selected-components">
                       <GradientBadge 
+                        key={`selected-badge-${gradientKey}`}
                         backgroundColor={selectedCombination.background}
                         foregroundColor={selectedCombination.foreground}
                         contrast={selectedCombination.contrast}
                         algorithm={algorithm}
                         bgHue={selectedCombination.bgHue}
                         fgHue={selectedCombination.fgHue}
+                        bgIndex={selectedCombination.bgIndex}
                         label="Badge"
                         showBorder={showBorders}
                         borderLevel={borderLevel}
                         backgroundVariant={backgroundVariant}
                         gradientType={gradientType}
                         gradientDirection={gradientDirection}
-                        hueShift={hueShift}
+                        hueStep={hueStep}
+                        hueMode={hueMode}
+                        colorPalette={currentPaletteColors}
                       />
                       <GradientAvatar 
+                        key={`selected-avatar-${gradientKey}`}
                         backgroundColor={selectedCombination.background}
                         foregroundColor={selectedCombination.foreground}
                         size="md"
@@ -1061,7 +1119,11 @@ function App() {
                         backgroundVariant={backgroundVariant}
                         gradientType={gradientType}
                         gradientDirection={gradientDirection}
-                        hueShift={hueShift}
+                        hueStep={hueStep}
+                        hueMode={hueMode}
+                        bgHue={selectedCombination.bgHue}
+                        bgIndex={selectedCombination.bgIndex}
+                        colorPalette={currentPaletteColors}
                       />
                     </div>
                     
