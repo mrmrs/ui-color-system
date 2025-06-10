@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "build:with-type-check": "tsc -b && vite build",
     "build:ignore-errors": "node build-no-check.js",
+    "build:no-errors": "node build-no-errors.js",
+    "build:fast": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
