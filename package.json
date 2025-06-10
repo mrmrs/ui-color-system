@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@nivo/bar": "^0.99.0",
+    "@nivo/line": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
     "colorjs.io": "^0.5.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

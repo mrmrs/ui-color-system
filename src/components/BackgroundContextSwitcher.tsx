@@ -54,21 +54,7 @@ const BackgroundContextSwitcher: React.FC<BackgroundContextSwitcherProps> = ({
 
   return (
     <div className="background-switcher">
-      <button 
-        className="bg-switcher-button"
-        onClick={cycleMode}
-        style={{ 
-          backgroundColor: backgroundColors[currentMode],
-          color: textColors[currentMode],
-          borderColor: currentMode === 'light1' || currentMode === 'default' ? '#ccc' : 'transparent'
-        }}
-      >
-        <span className="switcher-icon">🔄</span>
-        <span className="switcher-text">
-          View on: {modeNames[currentMode]}
-        </span>
-      </button>
-      <div className="background-mode-indicator">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'black', padding: '4px 8px', borderRadius: '9999px' }}>
         {Object.entries(backgroundColors).map(([mode, color]) => (
           <div 
             key={mode} 
@@ -78,6 +64,29 @@ const BackgroundContextSwitcher: React.FC<BackgroundContextSwitcherProps> = ({
             title={modeNames[mode as BackgroundMode]}
           />
         ))}
+
+      <button 
+        onClick={cycleMode}
+        style={{ 
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          backgroundColor: 'transparent',
+          color: 'white',
+          borderColor: 'none',
+          borderWidth: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 8px',
+          fontSize: '10px',
+          borderRadius: '6px',
+        }}
+      >
+        <span className="switcher-icon">🔄</span>
+        <span className="switcher-text">
+          {modeNames[currentMode]}
+        </span>
+      </button>
       </div>
     </div>
   );

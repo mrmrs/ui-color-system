@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Color from 'colorjs.io';
 import { calculateContrast } from '../utils/colorUtils';
 
@@ -10,6 +10,8 @@ type ColorPaletteModalProps = {
 
 const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({ colors, isOpen, onClose }) => {
   if (!isOpen) return null;
+
+  const [showDashboardView, setShowDashboardView] = useState<boolean>(false);
 
   // Create a function to determine text color based on background
   const getTextColor = (backgroundColor: string): string => {

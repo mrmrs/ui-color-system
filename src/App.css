@@ -10,6 +10,12 @@ label {
   font-size: 10px!important;
 }
 
+select { 
+  color: currentColor; 
+  background: transparent;
+  borderColor: currentColor;
+} 
+
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
@@ -69,6 +75,7 @@ body {
 .app-container {
   width: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100dvh;
 }
 
 .filters {
@@ -1196,12 +1203,12 @@ select:focus, input:focus {
 }
 
 .mode-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255,255,255,1);
 }
 
 .mode-dot:hover {
@@ -1209,7 +1216,7 @@ select:focus, input:focus {
 }
 
 .mode-dot.active {
-  box-shadow: 0 0 0 2px #4a90e2, 0 0 0 4px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 0 0 2px #4a90e2;
 }
 
 /* Dark mode overrides for key UI elements */
